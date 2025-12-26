@@ -198,7 +198,7 @@ async def verify_code(request: VerifyCodeRequest):
     # Create session token (expires when code expires)
     remaining_time = expires_at - datetime.now(timezone.utc)
     token = create_token(
-        {"sub": email_id, "email": email_address, "role": "user"},
+        {"sub": code_doc["id"], "email": email_address, "role": "user"},
         remaining_time
     )
     
