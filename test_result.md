@@ -173,6 +173,30 @@ frontend:
         agent: "main"
         comment: "Removed the 'Made with Emergent' badge from index.html"
 
+  - task: "Update help text for access codes"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/LoginPage.jsx"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Updated help text from 'single-use' to 'valid for 2 IP addresses'"
+
+  - task: "Implement IP-based access code restriction"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Implemented IP tracking for access codes. Each code can now be used by up to 2 unique IP addresses. Same IP can reuse the code. Third different IP will be rejected with error message."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
