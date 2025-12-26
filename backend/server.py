@@ -108,6 +108,21 @@ def generate_email_address() -> str:
     prefix = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(10))
     return f"{prefix}@tempmail.local"
 
+def get_client_ip(request: Request) -> str:
+    """Extract client IP from request"""
+    # Check for forwarded IP (behind proxy/load balancer)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    
+    # Check for real IP header
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip
+    
+    # Fall back to direct client host
+    return request.client.host if request.client else "unknown"
+
 def create_token(data: dict, expires_delta: timedelta) -> str:
     """Create JWT token"""
     to_encode = data.copy()
