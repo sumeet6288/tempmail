@@ -28,11 +28,17 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Clear both user and admin tokens on 401
       localStorage.removeItem('token');
       localStorage.removeItem('userEmail');
       localStorage.removeItem('expiresAt');
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUsername');
+      
       if (!window.location.pathname.includes('/admin')) {
         window.location.href = '/';
+      } else {
+        window.location.href = '/admin';
       }
     }
     return Promise.reject(error);
