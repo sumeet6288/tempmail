@@ -125,10 +125,6 @@ export default function AdminLoginPage() {
             </div>
           </CardContent>
         </Card>
-
-        <p className="text-center mt-6 text-sm text-muted-foreground">
-          Default credentials: admin / admin123
-        </p>
       </div>
     </div>
   );
