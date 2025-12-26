@@ -127,11 +127,14 @@ backend:
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Changed admin username from 'admin' to 'admin@botsmith.com' in startup function"
+      - working: true
+        agent: "testing"
+        comment: "TESTED: Admin credentials successfully updated. New credentials (admin@botsmith.com/admin123) work correctly. Old credentials ('admin') properly rejected with 401 error. Fixed database issue where both old and new admin accounts existed - removed old account. All admin endpoints (login, stats, generate-code, get-codes) working correctly."
 
 frontend:
   - task: "Install frontend dependencies"
