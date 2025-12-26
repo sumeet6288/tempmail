@@ -287,6 +287,181 @@ class TempMailAPITester:
             print(f"   API Response: {response}")
         return success
 
+    def run_test_with_ip(self, name, method, endpoint, expected_status, ip_address, data=None, headers=None):
+        """Run a single API test with specific IP address simulation"""
+        url = f"{self.base_url}/{endpoint}"
+        test_headers = {'Content-Type': 'application/json', 'X-Forwarded-For': ip_address}
+        if headers:
+            test_headers.update(headers)
+
+        self.tests_run += 1
+        print(f"\n🔍 Testing {name} (IP: {ip_address})...")
+        
+        try:
+            if method == 'GET':
+                response = requests.get(url, headers=test_headers)
+            elif method == 'POST':
+                response = requests.post(url, json=data, headers=test_headers)
+            elif method == 'DELETE':
+                response = requests.delete(url, headers=test_headers)
+
+            success = response.status_code == expected_status
+            if success:
+                self.tests_passed += 1
+                print(f"✅ Passed - Status: {response.status_code}")
+                try:
+                    return True, response.json() if response.content else {}
+                except:
+                    return True, {}
+            else:
+                print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Response: {response.text}")
+                self.failed_tests.append({
+                    "test": name,
+                    "expected": expected_status,
+                    "actual": response.status_code,
+                    "endpoint": endpoint,
+                    "ip": ip_address
+                })
+                return False, {}
+
+        except Exception as e:
+            print(f"❌ Failed - Error: {str(e)}")
+            self.failed_tests.append({
+                "test": name,
+                "error": str(e),
+                "endpoint": endpoint,
+                "ip": ip_address
+            })
+            return False, {}
+
+    def test_ip_restriction_scenario_1(self):
+        """Test Scenario 1: First IP uses the code"""
+        if not self.generated_code:
+            print("❌ No generated code available")
+            return False
+            
+        success, response = self.run_test_with_ip(
+            "IP Restriction - Scenario 1 (First IP)",
+            "POST",
+            "verify-code",
+            200,
+            "192.168.1.100",
+            data={"code": self.generated_code}
+        )
+        if success and 'token' in response:
+            self.ip1_token = response['token']
+            self.ip1_email = response.get('email_address')
+            print(f"   IP1 token obtained: {self.ip1_token[:20]}...")
+            print(f"   IP1 email: {self.ip1_email}")
+            return True
+        return False
+
+    def test_ip_restriction_scenario_2(self):
+        """Test Scenario 2: Same IP reuses the code"""
+        if not self.generated_code:
+            print("❌ No generated code available")
+            return False
+            
+        success, response = self.run_test_with_ip(
+            "IP Restriction - Scenario 2 (Same IP reuse)",
+            "POST",
+            "verify-code",
+            200,
+            "192.168.1.100",
+            data={"code": self.generated_code}
+        )
+        if success and 'email_address' in response:
+            reused_email = response.get('email_address')
+            print(f"   Reused email: {reused_email}")
+            if hasattr(self, 'ip1_email') and reused_email == self.ip1_email:
+                print(f"   ✅ Same email address returned as expected")
+                return True
+            else:
+                print(f"   ❌ Different email returned! Expected: {getattr(self, 'ip1_email', 'N/A')}, Got: {reused_email}")
+                return False
+        return False
+
+    def test_ip_restriction_scenario_3(self):
+        """Test Scenario 3: Second different IP uses the code"""
+        if not self.generated_code:
+            print("❌ No generated code available")
+            return False
+            
+        success, response = self.run_test_with_ip(
+            "IP Restriction - Scenario 3 (Second IP)",
+            "POST",
+            "verify-code",
+            200,
+            "192.168.1.101",
+            data={"code": self.generated_code}
+        )
+        if success and 'token' in response:
+            self.ip2_token = response['token']
+            self.ip2_email = response.get('email_address')
+            print(f"   IP2 token obtained: {self.ip2_token[:20]}...")
+            print(f"   IP2 email: {self.ip2_email}")
+            if hasattr(self, 'ip1_email') and self.ip2_email != self.ip1_email:
+                print(f"   ✅ Different email address returned as expected")
+                return True
+            else:
+                print(f"   ❌ Same email returned! Expected different from: {getattr(self, 'ip1_email', 'N/A')}")
+                return False
+        return False
+
+    def test_ip_restriction_scenario_4(self):
+        """Test Scenario 4: Third different IP tries to use the code (SHOULD FAIL)"""
+        if not self.generated_code:
+            print("❌ No generated code available")
+            return False
+            
+        success, response = self.run_test_with_ip(
+            "IP Restriction - Scenario 4 (Third IP - should fail)",
+            "POST",
+            "verify-code",
+            403,
+            "192.168.1.102",
+            data={"code": self.generated_code}
+        )
+        if success:
+            # Check if the error message is correct
+            if 'detail' in response and "Different IP address" in response['detail']:
+                print(f"   ✅ Correct error message: {response['detail']}")
+                return True
+            else:
+                print(f"   ❌ Incorrect error message: {response.get('detail', 'No detail')}")
+                return False
+        return False
+
+    def test_ip_restriction_scenario_5(self):
+        """Test Scenario 5: Second IP reuses the code"""
+        if not self.generated_code:
+            print("❌ No generated code available")
+            return False
+            
+        success, response = self.run_test_with_ip(
+            "IP Restriction - Scenario 5 (Second IP reuse)",
+            "POST",
+            "verify-code",
+            200,
+            "192.168.1.101",
+            data={"code": self.generated_code}
+        )
+        if success and 'email_address' in response:
+            reused_email = response.get('email_address')
+            print(f"   Reused email: {reused_email}")
+            if hasattr(self, 'ip2_email') and reused_email == self.ip2_email:
+                print(f"   ✅ Same email address returned as expected for IP2")
+                return True
+            else:
+                print(f"   ❌ Different email returned! Expected: {getattr(self, 'ip2_email', 'N/A')}, Got: {reused_email}")
+                return False
+        return False
+
 def main():
     print("🚀 Starting TempMail API Tests...")
     print("=" * 50)
