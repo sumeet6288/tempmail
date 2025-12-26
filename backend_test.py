@@ -296,7 +296,8 @@ def main():
     # Test sequence
     tests = [
         ("API Root", tester.test_api_root),
-        ("Admin Login", tester.test_admin_login),
+        ("Admin Login (Old Credentials)", tester.test_admin_login_old_credentials),
+        ("Admin Login (New Credentials)", tester.test_admin_login),
         ("Admin Stats", tester.test_admin_stats),
         ("Generate Access Code", tester.test_generate_access_code),
         ("Get Admin Codes", tester.test_get_admin_codes),
