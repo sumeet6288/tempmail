@@ -144,16 +144,16 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Depends(sec
 @app.on_event("startup")
 async def init_admin():
     """Create default admin if not exists"""
-    admin = await db.admin_users.find_one({"username": "admin"})
+    admin = await db.admin_users.find_one({"username": "admin@botsmith.com"})
     if not admin:
         hashed = pwd_context.hash("admin123")
         await db.admin_users.insert_one({
             "id": str(uuid.uuid4()),
-            "username": "admin",
+            "username": "admin@botsmith.com",
             "password_hash": hashed,
             "created_at": datetime.now(timezone.utc).isoformat()
         })
-        logging.info("Default admin created: admin / admin123")
+        logging.info("Default admin created: admin@botsmith.com / admin123")
 
 # ============ USER ENDPOINTS ============
 
