@@ -75,7 +75,7 @@ export default function LoginPage() {
                   autoFocus
                 />
                 <p className="text-xs text-muted-foreground text-center">
-                  Codes are case-insensitive and single-use
+                  Each code is valid for 2 IP addresses
                 </p>
               </div>
 
