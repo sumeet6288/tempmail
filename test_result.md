@@ -161,6 +161,18 @@ frontend:
         agent: "main"
         comment: "Removed the hardcoded credential display text from AdminLoginPage"
 
+  - task: "Remove 'Made with Emergent' badge"
+    implemented: true
+    working: true
+    file: "frontend/public/index.html"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Removed the 'Made with Emergent' badge from index.html"
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
