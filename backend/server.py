@@ -173,9 +173,10 @@ async def init_admin():
 # ============ USER ENDPOINTS ============
 
 @api_router.post("/verify-code", response_model=VerifyCodeResponse)
-async def verify_code(request: VerifyCodeRequest):
+async def verify_code(request: VerifyCodeRequest, req: Request):
     """Validate access code and create session"""
     code = request.code.upper().strip()
+    client_ip = get_client_ip(req)
     
     # Find the code
     code_doc = await db.access_codes.find_one({"code": code}, {"_id": 0})
@@ -183,20 +184,50 @@ async def verify_code(request: VerifyCodeRequest):
     if not code_doc:
         raise HTTPException(status_code=400, detail="Invalid access code")
     
-    # Check if already used
-    if code_doc.get("used"):
-        raise HTTPException(status_code=400, detail="This code has already been used")
-    
     # Check if expired
     expires_at = datetime.fromisoformat(code_doc["expires_at"])
     if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=400, detail="This code has expired")
     
-    # Mark code as used
-    await db.access_codes.update_one(
-        {"code": code},
-        {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}}
-    )
+    # Get list of IPs that have used this code
+    used_ips = code_doc.get("used_ips", [])
+    
+    # Check if current IP is already in the list
+    if client_ip not in used_ips:
+        # Check if we've reached the 2 IP limit
+        if len(used_ips) >= 2:
+            raise HTTPException(status_code=403, detail="Different IP address. This code has already been used by 2 different IP addresses.")
+        
+        # Add this IP to the list
+        used_ips.append(client_ip)
+        await db.access_codes.update_one(
+            {"code": code},
+            {
+                "$set": {"used_ips": used_ips},
+                "$setOnInsert": {"first_used_at": datetime.now(timezone.utc).isoformat()}
+            },
+            upsert=False
+        )
+    
+    # Check if this IP already has a session for this code
+    existing_email = await db.temp_emails.find_one({
+        "session_id": code_doc["id"],
+        "client_ip": client_ip
+    }, {"_id": 0})
+    
+    if existing_email:
+        # Return existing session
+        remaining_time = expires_at - datetime.now(timezone.utc)
+        token = create_token(
+            {"sub": code_doc["id"], "email": existing_email["email_address"], "role": "user", "ip": client_ip},
+            remaining_time
+        )
+        
+        return VerifyCodeResponse(
+            token=token,
+            expires_at=code_doc["expires_at"],
+            email_address=existing_email["email_address"]
+        )
     
     # Generate temp email for this session
     email_id = str(uuid.uuid4())
@@ -206,6 +237,7 @@ async def verify_code(request: VerifyCodeRequest):
         "id": email_id,
         "email_address": email_address,
         "session_id": code_doc["id"],
+        "client_ip": client_ip,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "expires_at": code_doc["expires_at"]
     })
@@ -213,7 +245,7 @@ async def verify_code(request: VerifyCodeRequest):
     # Create session token (expires when code expires)
     remaining_time = expires_at - datetime.now(timezone.utc)
     token = create_token(
-        {"sub": code_doc["id"], "email": email_address, "role": "user"},
+        {"sub": code_doc["id"], "email": email_address, "role": "user", "ip": client_ip},
         remaining_time
     )
     
