@@ -364,6 +364,7 @@ async def generate_access_code(request: GenerateCodeRequest, admin = Depends(get
         "expires_at": expires_at.isoformat(),
         "used": False,
         "used_at": None,
+        "used_ips": [],
         "created_at": created_at.isoformat(),
         "created_by": admin["username"]
     }
