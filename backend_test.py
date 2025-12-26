@@ -64,14 +64,25 @@ class TempMailAPITester:
             })
             return False, {}
 
-    def test_admin_login(self):
-        """Test admin login"""
+    def test_admin_login_old_credentials(self):
+        """Test admin login with old credentials (should fail)"""
         success, response = self.run_test(
-            "Admin Login",
+            "Admin Login (Old Credentials)",
+            "POST",
+            "admin/login",
+            401,
+            data={"username": "admin", "password": "admin123"}
+        )
+        return success
+
+    def test_admin_login(self):
+        """Test admin login with new credentials"""
+        success, response = self.run_test(
+            "Admin Login (New Credentials)",
             "POST",
             "admin/login",
             200,
-            data={"username": "admin", "password": "admin123"}
+            data={"username": "admin@botsmith.com", "password": "admin123"}
         )
         if success and 'token' in response:
             self.admin_token = response['token']
